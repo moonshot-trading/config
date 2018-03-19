@@ -1,0 +1,66 @@
+version: '2.1'
+services:
+  postgres:
+    build:
+      context: ./transaction-server/db
+    
+  transaction-server:
+    build:
+      context: ./transaction-server
+    ports:
+    - "44416:44416"
+    links: 
+    - postgres
+    depends_on: 
+    - audit-mq
+    - redis-ts
+    env_file:
+    - vars.env
+  
+  test-quote-server:
+    build:
+      context: ./test-quote-server
+
+  quote-server:
+    build:
+      context: ./quote-server
+    ports:
+    - "44418:44418"
+    links: 
+    - redis
+    - test-quote-server
+    depends_on:
+    - test-quote-server
+
+  redis:
+    image: "redis:alpine"
+
+  redis-ts:
+    image: "redis:alpine"
+    
+  web:
+    build:
+      context: ./Web
+    ports: 
+    - "8080:8080"
+
+  audit-mq:
+    image: "rabbitmq:alpine"
+    ports:
+    - "5672:5672"
+    - "15672:15672"
+
+  audit-db:
+    build:
+      context: ./audit-server/db
+
+  audit-server:
+    build:
+      context: ./audit-server
+    depends_on: 
+    - audit-mq
+    - audit-db
+    ports:
+    - "44417:44417"
+    links:
+    - audit-db
